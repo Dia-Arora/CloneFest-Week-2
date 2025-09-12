@@ -10,7 +10,7 @@ COPY package*.json ./
 RUN npm install
 
 # Make all binaries in node_modules/.bin executable
-RUN chmod +x /app/node_modules/.bin/*
+RUN find /app/node_modules/.bin -type f -exec chmod +x {} +
 
 # Copy the rest of the application code
 COPY . .
