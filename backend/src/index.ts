@@ -10,18 +10,18 @@ const app = express();
 const port = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${port}`;
 
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set.');
+}
+
 app.use(cors());
 app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
   res.send('Backend server is running!');
 });
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set.');
-}
 
 // Extend Express Request type to include user
 interface AuthRequest extends express.Request {

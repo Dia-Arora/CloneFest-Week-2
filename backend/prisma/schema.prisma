@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,13 +8,13 @@ datasource db {
 }
 
 model Image {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   url       String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   tags      String[]
-  albumId   String?
-  album     Album?   @relation(fields: [albumId], references: [id])
   vector    Float[]
+  albumId   String?
+  album     Album?    @relation(fields: [albumId], references: [id])
 }
 
 model Album {
