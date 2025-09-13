@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import ImageGrid from '../components/ImageGrid';
-import UploadForm from '../components/UploadForm';
+// UploadForm import is now GONE
 import ImageModal from '../components/ImageModal';
 
 // This interface should be in its own file (e.g., src/types.ts) but this works.
@@ -21,7 +21,7 @@ const DashboardPage: React.FC = () => {
   // This function fetches images when the page loads
   const fetchImages = async () => {
     try {
-      // !!! PLACEHOLDER: This will be fixed in Part 3
+      // This URL is already correct from your previous file
       const response = await fetch('https://clonefest-week-2.onrender.com/api/images'); 
       if (!response.ok) throw new Error('Failed to fetch images');
       const data: Image[] = await response.json();
@@ -36,10 +36,7 @@ const DashboardPage: React.FC = () => {
     fetchImages();
   }, []);
 
-  // This adds the new image to the state after a successful upload
-  const handleUploadSuccess = (newImage: Image) => {
-    setImages((prevImages) => [newImage, ...prevImages]);
-  };
+  // The handleUploadSuccess function is now GONE.
 
   // This function is passed to the modal to run AFTER a delete is successful
   const handleImageDeleted = (deletedImageId: string) => {
@@ -54,10 +51,7 @@ const DashboardPage: React.FC = () => {
     <DashboardLayout>
       <h2>Your Gallery</h2>
       
-      {/* This component gets the upload handler function */}
-      <UploadForm onUploadSuccess={handleUploadSuccess} />
-
-      <hr style={{ margin: '2rem 0' }} /> 
+      {/* The UploadForm and the <hr> have been correctly removed from this page. */}
       
       <p>All your uploaded images.</p>
       

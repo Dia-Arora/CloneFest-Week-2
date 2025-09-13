@@ -1,4 +1,6 @@
-import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+// Your new, fixed lines:
+import { createContext, useContext, useState, useEffect } from 'react'; // <-- ADD IT HERE
+import type { ReactNode } from 'react'; // <-- This 'import type' syntax fixes the error
 
 type Theme = 'light' | 'dark';
 
