@@ -2,14 +2,14 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
 
-# Install ALL dependencies based on the package-lock.json we fixed
+# Install ALL dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of your source code
+# Copy source code
 COPY . .
 
-# Generate the client and build the app
+# Generate client and build the app
 RUN npx prisma generate
 RUN npm run build
 
@@ -23,12 +23,14 @@ WORKDIR /app
 # Add openssl, which Prisma's query engine needs
 RUN apk add --no-cache openssl
 
-# --- THIS IS THE NEW, SIMPLER STRATEGY ---
-# Copy the entire, working node_modules folder from the builder.
-# This includes all deps AND the generated Prisma client.
-# This is less optimized for size, but 100% reliable.
+# --- THIS IS THE FIX ---
+# We must copy the package.json (and package-lock) so that
+# the "npm start" command can find its script.
+COPY --from=builder /app/package*.json ./
+# --- END OF FIX ---
+
+# Copy the entire working node_modules folder
 COPY --from=builder /app/node_modules ./node_modules
-# --- END OF NEW STRATEGY ---
 
 # Copy all other necessary artifacts from the builder
 COPY --from=builder /app/dist ./dist
