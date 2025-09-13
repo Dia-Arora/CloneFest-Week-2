@@ -1,25 +1,40 @@
-type ImageCardProps = {
-  imageUrl: string;
-  caption: string;
-};
+import React from 'react';
 
-const ImageCard = ({ imageUrl, caption }: ImageCardProps) => {
-  const cardStyles: React.CSSProperties = {
-    border: '1px solid #ccc',
-    borderRadius: '8px',
-    overflow: 'hidden',
-  };
+// Define the Image type
+interface Image {
+  id: string;
+  url: string;
+  caption: string | null;
+  tags: string[];
+}
 
-  const imgStyles: React.CSSProperties = {
-    width: '100%',
-    height: '200px',
-    objectFit: 'cover',
-  };
+// Update the props to accept the click handler
+interface ImageCardProps {
+  image: Image;
+  onImageClick: (image: Image) => void;
+}
+
+const ImageCard: React.FC<ImageCardProps> = ({ image, onImageClick }) => {
+
+  // !! PLACEHOLDER: This will be fixed in Part 3
+  const BACKEND_URL = 'https://clonefest-week-2.onrender.com'; 
+  const imageUrl = `${BACKEND_URL}${image.url}`;
 
   return (
-    <div style={cardStyles}>
-      <img src={imageUrl} alt={caption} style={imgStyles} />
-      <p style={{ padding: '10px' }}>{caption}</p>
+    // Add the onClick handler to the whole div to make it clickable
+    <div className="image-card" onClick={() => onImageClick(image)} style={{ cursor: 'pointer' }}>
+      
+      <img src={imageUrl} alt={image.caption || ''} style={{ maxWidth: '300px' }} />
+      
+      <div className="image-card-body">
+        <p>{image.caption || 'No caption'}</p>
+        
+        <div className="tags-container">
+          {image.tags && image.tags.map((tag) => (
+            <span key={tag} className="tag">{tag}</span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

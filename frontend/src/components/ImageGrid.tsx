@@ -1,23 +1,34 @@
+import React from 'react';
 import ImageCard from './ImageCard';
 
-// This is mock data. Later, it will come from your backend API.
-const mockImages = [
-  { id: 1, url: 'https://via.placeholder.com/300', caption: 'Castle in the sky' },
-  { id: 2, url: 'https://via.placeholder.com/300', caption: 'A quiet forest' },
-  { id: 3, url: 'https://via.placeholder.com/300', caption: 'City at night' },
-];
+// Define the Image type
+interface Image {
+  id: string;
+  url: string;
+  caption: string | null;
+  tags: string[];
+}
 
-const ImageGrid = () => {
-  const gridStyles: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-    gap: '20px',
-  };
+// Update the props to accept the click handler
+interface ImageGridProps {
+  images: Image[];
+  onImageClick: (image: Image) => void;
+}
 
+const ImageGrid: React.FC<ImageGridProps> = ({ images, onImageClick }) => {
+  
   return (
-    <div style={gridStyles}>
-      {mockImages.map(image => (
-        <ImageCard key={image.id} imageUrl={image.url} caption={image.caption} />
+    <div className="image-grid-container"> 
+      
+      {images.length === 0 && <p>No images found. Try uploading one!</p>}
+
+      {/* Pass the click handler down to each card */}
+      {images.map((image) => (
+        <ImageCard 
+          key={image.id} 
+          image={image} 
+          onImageClick={onImageClick}
+        />
       ))}
     </div>
   );

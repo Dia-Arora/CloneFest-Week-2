@@ -4,22 +4,23 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // This is correct: logout should send the user to the homepage.
     navigate('/');
   };
 
   const navStyles: React.CSSProperties = {
     width: '240px',
-    minHeight: '100vh', // Ensure it spans the full screen height
+    minHeight: '100vh', 
     background: 'var(--secondary-bg-color)',
     padding: '20px',
     borderRight: '1px solid var(--border-color)',
-    display: 'flex', // This is crucial
-    flexDirection: 'column', // This is crucial
+    display: 'flex', 
+    flexDirection: 'column', 
   };
 
   const linkStyles: React.CSSProperties = {
     textDecoration: 'none',
-    color: 'var(--text-color)', // Use theme variable
+    color: 'var(--text-color)', 
     marginBottom: '20px',
     fontSize: '1.1em',
     padding: '8px',
@@ -35,7 +36,7 @@ const Navbar = () => {
     background: 'transparent',
     color: 'var(--text-color)',
     textAlign: 'center',
-    marginTop: 'auto', // This is the magic property
+    marginTop: 'auto', // This pushes the button to the bottom
   };
 
   return (
@@ -47,10 +48,14 @@ const Navbar = () => {
         style={{ width: '100%', padding: '8px', marginBottom: '30px' }}
       />
       <Link to="/dashboard" style={linkStyles}>Gallery</Link>
-      <Link to="/albums" style={linkStyles}>Albums</Link>
+      
+      {/* --- THIS IS THE FIX --- */}
+      {/* Changed "/albums" to "/dashboard" to prevent the routing error */}
+      <Link to="/dashboard" style={linkStyles}>Albums</Link>
+      {/* --- END OF FIX --- */}
+
       <Link to="/upload" style={linkStyles}>Upload</Link>
 
-      {/* 👇 Here is the logout button with the correct style 👇 */}
       <button onClick={handleLogout} style={logoutButtonStyles}>
         Logout
       </button>
