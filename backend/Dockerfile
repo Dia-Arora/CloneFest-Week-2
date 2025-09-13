@@ -9,9 +9,6 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Make all binaries in node_modules/.bin executable
-RUN find /app/node_modules/.bin -type f -exec chmod +x {} +
-
 # Copy the rest of the application code
 COPY . .
 
@@ -19,7 +16,7 @@ COPY . .
 RUN npx prisma generate
 
 # Build the TypeScript code
-RUN npm run build
+RUN ./node_modules/.bin/tsc
 
 # Stage 2: Production
 FROM node:18-alpine
