@@ -10,7 +10,7 @@ RUN npm install
 # Copy the rest of the source code
 COPY . .
 
-# Run prisma generate and build the TypeScript code
+# Generate the Prisma client HERE (this creates the .prisma folder)
 RUN npx prisma generate
 RUN npm run build
 
@@ -31,15 +31,14 @@ COPY --from=builder /app/package*.json ./
 RUN npm prune --production
 
 # --- THIS IS THE FIX ---
-# We MUST copy the prisma schema FIRST...
-COPY --from=builder /app/prisma ./prisma
-
-# ...AND THEN we can generate the client.
-RUN npx prisma generate
+# Instead of running generate, COPY the already-generated client
+# from the builder stage's node_modules into this stage's node_modules.
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 # --- END OF FIX ---
 
-# Copy the built app code and entrypoint from the builder
+# Copy the built app, schema, and entrypoint
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/entrypoint.sh .
 
 # Create the storage directory for the persistent disk
