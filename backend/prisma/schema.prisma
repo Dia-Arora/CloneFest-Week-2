@@ -1,36 +1,25 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider      = "prisma-client-js"
-  // The corrected line with all required engines
-  binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x"]
-}
-
-// You likely have a User model for authentication
-model User {
-  id       Int    @id @default(autoincrement())
-  username String @unique
-  password String
+model Image {
+  id        String    @id @default(cuid())
+  url       String
+  createdAt DateTime  @default(now())
+  tags      String[]
+  vector    Float[]
+  albumId   String?
+  album     Album?    @relation(fields: [albumId], references: [id])
 }
 
 model Album {
-  id     Int     @id @default(autoincrement())
-  name   String  @unique
-  images Image[]
-}
-
-model Image {
-  id        Int      @id @default(autoincrement())
-  url       String
-  caption   String?
-  tags      String?  // <-- FIX: Added the 'tags' field
+  id        String   @id @default(cuid())
+  name      String   @unique
+  images    Image[]
   createdAt DateTime @default(now())
-  album     Album    @relation(fields: [albumId], references: [id])
-  albumId   Int
 }
