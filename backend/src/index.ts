@@ -58,7 +58,7 @@ const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) 
 
 // --- API ROUTES ---
 
-// === ADDED THIS BLOCK ===
+// === ADDED THIS BLOCK EARLIER ===
 // Root route for Render.com health checks
 app.get('/', (req, res) => {
   res.status(200).send('Server is healthy and running!');
@@ -79,18 +79,18 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-// POST /api/login - Log in a user
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = await db.user.findUnique({ where: { username } });
+// === THIS IS YOUR NEW HARDCODED LOGIN LOGIC ===
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
 
-  if (user && (await bcrypt.compare(password, user.password))) {
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token });
-  } else {
-    res.status(401).json({ error: 'Invalid username or password' });
-  }
+  if (username === 'CloneFest2025' && password === 'CloneFest2025') {
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  } else {
+    res.status(401).json({ message: 'Invalid credentials' });
+  }
 });
+// ============================================
 
 // POST /api/upload - Upload an image (protected route)
 app.post('/api/upload', authenticateToken, upload.single('image'), async (req: AuthRequest, res: Response) => {
@@ -112,7 +112,7 @@ app.post('/api/upload', authenticateToken, upload.single('image'), async (req: A
     data: {
       url: `/storage/images/${file.filename}`,
       caption,
-      tags, // FIX: The 'tags' property is now correctly handled
+      tags,
       albumId: album.id,
     },
   });
@@ -125,7 +125,7 @@ app.get('/api/images', async (req, res) => {
   const { tag } = req.query;
 
   const whereClause = tag
-    ? { tags: { contains: tag as string } } // FIX: 'tags' is now a valid property to filter by
+    ? { tags: { contains: tag as string } }
     : {};
 
   const images = await db.image.findMany({ 
@@ -137,7 +137,7 @@ app.get('/api/images', async (req, res) => {
 
 // GET /api/images/:id - Get a single image by its ID
 app.get('/api/images/:id', async (req, res) => {
-  const id = parseInt(req.params.id, 10); // FIX: Convert the string parameter from the URL to a number
+  const id = parseInt(req.params.id, 10); 
 
   if (isNaN(id)) {
     return res.status(400).json({ error: 'Invalid ID format. ID must be a number.' });
