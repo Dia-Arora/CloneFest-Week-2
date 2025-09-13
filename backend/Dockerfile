@@ -27,17 +27,19 @@ WORKDIR /app
 # Copy package files
 COPY --from=builder /app/package*.json ./
 
-# Install ONLY production dependencies (this includes prisma and @prisma/client now)
+# Install ONLY production dependencies
 RUN npm prune --production
 
 # --- THIS IS THE FIX ---
-# We must re-run generate to build the client in the new prod node_modules
+# We MUST copy the prisma schema FIRST...
+COPY --from=builder /app/prisma ./prisma
+
+# ...AND THEN we can generate the client.
 RUN npx prisma generate
 # --- END OF FIX ---
 
-# Copy the built app code, schema, and entrypoint from the builder
+# Copy the built app code and entrypoint from the builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/entrypoint.sh .
 
 # Create the storage directory for the persistent disk
