@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
 }
 
 datasource db {
@@ -8,13 +9,13 @@ datasource db {
 }
 
 model Image {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   url       String
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
   tags      String[]
   vector    Float[]
   albumId   String?
-  album     Album?    @relation(fields: [albumId], references: [id])
+  album     Album?   @relation(fields: [albumId], references: [id])
 }
 
 model Album {
