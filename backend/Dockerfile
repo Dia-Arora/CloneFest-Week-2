@@ -1,53 +1,45 @@
 # Stage 1: Builder
 FROM node:18-alpine AS builder
-
 WORKDIR /app
 
-# Copy package files and install ALL dependencies (incl. devDeps)
+# Install ALL dependencies based on the package-lock.json we fixed
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the source code
+# Copy the rest of your source code
 COPY . .
 
-# Generate the Prisma client HERE (this creates the .prisma folder)
+# Generate the client and build the app
 RUN npx prisma generate
 RUN npm run build
 
-# Copy the entrypoint script and make it executable
-COPY ./entrypoint.sh .
+# Make sure the entrypoint is executable
 RUN chmod +x ./entrypoint.sh
-
 
 # Stage 2: Production
 FROM node:18-alpine
-
 WORKDIR /app
 
-# Copy package files
-COPY --from=builder /app/package*.json ./
+# Add openssl, which Prisma's query engine needs
+RUN apk add --no-cache openssl
 
-# Install ONLY production dependencies
-RUN npm prune --production
+# --- THIS IS THE NEW, SIMPLER STRATEGY ---
+# Copy the entire, working node_modules folder from the builder.
+# This includes all deps AND the generated Prisma client.
+# This is less optimized for size, but 100% reliable.
+COPY --from=builder /app/node_modules ./node_modules
+# --- END OF NEW STRATEGY ---
 
-# --- THIS IS THE FIX ---
-# Instead of running generate, COPY the already-generated client
-# from the builder stage's node_modules into this stage's node_modules.
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-# --- END OF FIX ---
-
-# Copy the built app, schema, and entrypoint
+# Copy all other necessary artifacts from the builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/entrypoint.sh .
 
-# Create the storage directory for the persistent disk
+# Create storage dir for the persistent disk
 RUN mkdir -p storage/images
 
 EXPOSE 3000
 
-# Set the entrypoint to our script
+# This entrypoint and command stay the same
 ENTRYPOINT ["./entrypoint.sh"]
-
-# Set the default command for the entrypoint to execute
 CMD ["npm", "start"]
