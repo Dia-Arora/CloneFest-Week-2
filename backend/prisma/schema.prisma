@@ -1,5 +1,10 @@
 generator client {
   provider = "prisma-client-js"
+  // --- THIS IS THE FIX ---
+  // This tells Prisma to build the engine for the new OpenSSL 3.0
+  // in addition to the default "native" one.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  // --- END OF FIX ---
 }
 
 datasource db {
@@ -8,13 +13,13 @@ datasource db {
 }
 
 model Image {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   url       String
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
   tags      String[]
   vector    Float[]
   albumId   String?
-  album     Album?    @relation(fields: [albumId], references: [id])
+  album     Album?   @relation(fields: [albumId], references: [id])
 }
 
 model Album {
