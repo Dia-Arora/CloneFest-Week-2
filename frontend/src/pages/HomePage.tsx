@@ -8,21 +8,19 @@ const HomePage = () => {
     alignItems: 'center',
     minHeight: '100vh',
     textAlign: 'center',
-    // Use the variable for the background color
+    padding: '20px', // Added some padding for smaller screens
     backgroundColor: 'var(--background-color)', 
   };
 
   const textStyles: React.CSSProperties = {
-    // Use the variable for the text color
     color: 'var(--text-color)',
   };
 
   const getStartedButtonStyles: React.CSSProperties = {
     marginRight: '15px',
     padding: '10px 20px',
-    // Use the variable for the primary button color
     background: 'var(--primary-color)',
-    color: 'white', // White text usually works well on a solid primary color
+    color: 'white',
     textDecoration: 'none',
     borderRadius: '5px',
     border: 'none',
@@ -31,12 +29,27 @@ const HomePage = () => {
   const loginButtonStyles: React.CSSProperties = {
     padding: '10px 20px',
     background: 'transparent',
-    // Use the variable for the border color
     border: '1px solid var(--border-color)',
-    // Use the variable for the text color
     color: 'var(--text-color)',
     textDecoration: 'none',
     borderRadius: '5px',
+  };
+
+  // Styles for the video container
+  const videoContainerStyles: React.CSSProperties = {
+    marginTop: '50px',
+    maxWidth: '896px', // A standard 16:9 aspect ratio width
+    width: '100%',
+    boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+    borderRadius: '8px',
+    overflow: 'hidden', // Ensures the iframe corners are rounded
+    aspectRatio: '16 / 9', // Modern CSS to maintain aspect ratio
+  };
+  
+  const iframeStyles: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    border: 'none',
   };
 
 
@@ -52,6 +65,19 @@ const HomePage = () => {
           Login
         </Link>
       </nav>
+
+      {/* --- VIDEO DEMO SECTION --- */}
+      <div style={videoContainerStyles}>
+        <iframe 
+          style={iframeStyles}
+          src="https://www.youtube.com/embed/NwjiwnTkEyk" 
+          title="ImageMagicks Demo Video" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+          allowFullScreen>
+        </iframe>
+      </div>
+      {/* --- END VIDEO DEMO SECTION --- */}
+      
     </div>
   );
 };
