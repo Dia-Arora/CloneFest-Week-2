@@ -20,18 +20,15 @@ WORKDIR /app
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-
-# --- NEW FIX STARTS HERE ---
-# Copy the Prisma schema into the final image
 COPY --from=builder /app/prisma ./prisma
 
-# Generate the Prisma client INSIDE the final image to ensure it's correct
-RUN npx prisma generate
-# --- NEW FIX ENDS HERE ---
+# --- This does not generate the client, it was already generated in the builder ---
+# RUN npx prisma generate
 
 # Create the storage directory
 RUN mkdir -p storage/images
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# NEW FINAL COMMAND: Run migration, then start the server
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
