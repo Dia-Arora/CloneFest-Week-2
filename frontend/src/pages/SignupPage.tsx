@@ -34,10 +34,9 @@ const SignupPage: React.FC = () => {
       }
       
       // 2. SUCCESS! The backend sent us a new token. Save it.
-      // This MUST match the key we use everywhere else ('token')
       localStorage.setItem('token', data.token);
 
-      // 3. Now, navigate to the dashboard as a newly logged-in user.
+      // 3. Navigate to the dashboard as a newly logged-in user.
       navigate('/dashboard');
 
     } catch (err: any) {
@@ -51,7 +50,6 @@ const SignupPage: React.FC = () => {
     <div style={{ padding: '2rem', maxWidth: '400px', margin: '50px auto', textAlign: 'center' }}>
       <h2>Create Your Account</h2>
       
-      {/* This is a real form, not a link */}
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '1rem' }}>
           <label>Username</label> <br/>
@@ -74,7 +72,6 @@ const SignupPage: React.FC = () => {
           />
         </div>
         
-        {/* This is a real SUBMIT button */}
         <button type="submit" disabled={isLoading} style={{ width: '100%', padding: '10px' }}>
           {isLoading ? 'Creating Account...' : 'Create Account'}
         </button>
