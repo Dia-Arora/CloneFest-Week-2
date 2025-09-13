@@ -9,6 +9,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
+# --- FIX ADDED HERE in previous step ---
+RUN chmod +x -R ./node_modules/.bin/
+
 # Copy the rest of the application code
 COPY . .
 
@@ -16,10 +19,14 @@ COPY . .
 RUN npx prisma generate
 
 # Build the TypeScript code
-RUN npm run build
+RUN ./node_modules/.bin/tsc
 
 # Stage 2: Production
 FROM node:18-alpine
+
+# ---> ADD THE NEW FIX HERE <---
+# Install OpenSSL, which Prisma needs to run on Alpine Linux
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
