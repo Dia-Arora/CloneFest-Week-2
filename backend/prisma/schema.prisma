@@ -1,10 +1,7 @@
 generator client {
   provider = "prisma-client-js"
-  // --- THIS IS THE FIX ---
-  // This tells Prisma to build the engine for the new OpenSSL 3.0
-  // in addition to the default "native" one.
+  // This binaryTarget is the fix for our OpenSSL 3.0 deployment error
   binaryTargets = ["native", "debian-openssl-3.0.x"]
-  // --- END OF FIX ---
 }
 
 datasource db {
@@ -12,16 +9,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// This is your User model required for login/ownership
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  
+  images    Image[]
+}
+
+// Your Image model with all fixes
 model Image {
   id        String   @id @default(cuid())
   url       String
+  caption   String?  // <-- The caption field we added
   createdAt DateTime @default(now())
   tags      String[]
   vector    Float[]
   albumId   String?
   album     Album?   @relation(fields: [albumId], references: [id])
+  
+  // The ownership link to the User model
+  ownerId   Int?
+  owner     User?    @relation(fields: [ownerId], references: [id])
 }
 
+// Your Album model
 model Album {
   id        String   @id @default(cuid())
   name      String   @unique

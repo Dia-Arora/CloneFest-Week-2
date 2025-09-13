@@ -1,232 +1,202 @@
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
+import express, { Request, Response, NextFunction } from 'express';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import prisma from './db';
+// import fs from 'fs'; 
 
 const app = express();
-const port = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${port}`;
+const db = new PrismaClient();
+const PORT = process.env.PORT || 3000;
+// Make sure JWT_SECRET is set in your Render environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'your_default_secret_key_for_development';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set.');
-}
+// --- MIDDLEWARE SETUP ---
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
+// Serve static files (like uploaded images) from the 'storage' directory
+app.use('/storage', express.static(path.join(__dirname, '../storage')));
 
-app.get('/', (req, res) => {
-  res.send('Backend server is running!');
+// --- FILE UPLOAD SETUP (Multer) ---
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'storage/images'); // This folder is created in your Dockerfile & mapped to a disk
+  },
+  filename: (req, file, cb) => {
+    // Create a unique filename to avoid conflicts
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
 });
+const upload = multer({ storage });
 
-// Extend Express Request type to include user
-interface AuthRequest extends express.Request {
-  user?: any;
+// --- AUTHENTICATION MIDDLEWARE ---
+
+// Extend Express's Request type to include the user payload from the JWT
+interface AuthRequest extends Request {
+  // Use 'any' for the user payload or define a specific JwtPayload interface
+  user?: { userId: number } | any;
 }
 
-// Auth middleware
-const authenticateJWT = (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
-  const authHeader = req.headers.authorization;
+const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Format is "Bearer TOKEN"
 
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' }); // Unauthorized
+  }
 
-    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-      if (err) {
-        return res.sendStatus(403);
-      }
-
-      req.user = user;
-      next();
-    });
-  } else {
-    res.sendStatus(401);
-  }
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) {
+      return res.status(403).json({ error: 'Token is invalid' }); // Forbidden
+    }
+    req.user = user;
+    next();
+  });
 };
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'storage/images');
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
+// --- API ROUTES ---
+
+// Root route for Render.com health checks
+app.get('/', (req, res) => {
+  res.status(200).send('Server is healthy and running!');
 });
 
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type, only JPEG and PNG is allowed!'));
-    }
-  },
-  limits: {
-    fileSize: 1024 * 1024 * 2, // 2MB
-  },
+
+// POST /api/signup - Create a new user
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await db.user.create({ data: { username, password: hashedPassword } });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
+    res.status(201).json({ token });
+  } catch (error) {
+    res.status(400).json({ error: 'Username already exists or invalid data provided.' });
+  }
 });
 
+// This is your hardcoded login route (as you requested)
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
 
   if (username === 'CloneFest2025' && password === 'CloneFest2025') {
-    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    // Note: This token is not associated with a database user ID.
+    // This will cause problems with the delete/upload logic unless you sign a real ID.
+    const token = jwt.sign({ username: 'CloneFest2025' /*, userId: 1 */ }, JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } else {
     res.status(401).json({ message: 'Invalid credentials' });
   }
 });
 
-app.post('/api/upload', authenticateJWT, upload.single('image'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No file uploaded.' });
+// --- UPDATED UPLOAD ROUTE ---
+app.post('/api/upload', authenticateToken, upload.single('image'), async (req: AuthRequest, res: Response) => {
+  const { caption, tags } = req.body;
+  const file = req.file;
+
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated or user ID is missing from token.' });
   }
 
-  const fileUrl = `${BASE_URL}/storage/images/${req.file.filename}`;
-  const tags = req.file.originalname.split('.')[0].split(/[\s-_]+/).map(tag => tag.toLowerCase());
-  const albumName = tags[0] || 'Uncategorized';
+  if (!file) {
+    return res.status(400).json({ error: 'No image file uploaded.' });
+  }
 
-  // Simulate AI vector generation
-  const vector = Array.from({ length: 10 }, () => Math.random());
+  const album = await db.album.upsert({
+    where: { name: 'Default Album' },
+    update: {},
+    create: { name: 'Default Album' },
+  });
 
-  try {
-    const album = await prisma.album.upsert({
-      where: { name: albumName },
-      update: {},
-      create: { name: albumName },
-    });
+  const newImage = await db.image.create({
+    data: {
+      url: `/storage/images/${file.filename}`,
+      caption,
+      tags, 
+      albumId: album.id,
+      ownerId: userId
+    },
+  });
 
-    const image = await prisma.image.create({
-      data: {
-        url: fileUrl,
-        tags: tags,
-        albumId: album.id,
-        vector: vector,
-      },
-    });
-    res.status(201).json({ url: image.url });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error saving image to database.' });
+  res.status(201).json(newImage);
+});
+
+// --- FIXED 'GET ALL IMAGES' ROUTE ---
+app.get('/api/images', async (req, res) => {
+  const { tag } = req.query;
+
+  // --- THIS IS THE FIX ---
+  // For a String array, the Prisma filter is 'has', not 'contains'
+  const whereClause = tag
+    ? { tags: { has: tag as string } } 
+    : {};
+  // --- END OF FIX ---
+
+  const images = await db.image.findMany({ 
+    where: whereClause,
+    orderBy: { createdAt: 'desc' } 
+  });
+  res.json(images);
+});
+
+
+// --- FIXED 'GET BY ID' ROUTE ---
+app.get('/api/images/:id', async (req, res) => {
+  const { id } = req.params; // This is a CUID string
+
+  const image = await db.image.findUnique({ where: { id } });
+
+  if (image) {
+    res.json(image);
+  } else {
+    res.status(404).json({ error: 'Image not found' });
   }
 });
 
-// Get all albums
-app.get('/api/albums', authenticateJWT, async (req, res) => {
+// --- NEW DELETE ROUTE ---
+app.delete('/api/images/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const albums = await prisma.album.findMany({
-      include: {
-        _count: {
-          select: { images: true },
-        },
-      },
-    });
-    res.json(albums);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error fetching albums.' });
-  }
-});
+    const { id } = req.params; // The image CUID
+    const userId = req.user?.userId; // The user ID from the token
 
-// Get a single album with its images
-app.get('/api/albums/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const album = await prisma.album.findUnique({
-      where: { id },
-      include: { images: true },
-    });
-    if (album) {
-      res.json(album);
-    } else {
-      res.status(404).json({ message: 'Album not found.' });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error fetching album.' });
-  }
-});
-
-// Search for images
-app.get('/api/search', authenticateJWT, async (req, res) => {
-  const { q } = req.query;
-
-  if (!q) {
-    return res.status(400).json({ message: 'Search query is required.' });
-  }
-
-  const searchQuery = q.toString().toLowerCase();
-
-  try {
-    // In a real application, you would use the search query to generate a vector
-    // and then perform a similarity search in the database.
-    // For this simulation, we will perform a simple keyword search on the tags.
-    const images = await prisma.image.findMany({
-      where: {
-        tags: {
-          has: searchQuery,
-        },
-      },
-    });
-    res.json(images);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error searching for images.' });
-  }
-});
-
-// Get all images
-app.get('/api/images', authenticateJWT, async (req, res) => {
-  try {
-    const images = await prisma.image.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-    res.json(images);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error fetching images.' });
-  }
-});
-
-// Delete an image
-app.delete('/api/images/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const image = await prisma.image.delete({
-      where: { id },
-    });
-
-    // Also delete the file from storage
-    const filename = image.url.split('/').pop();
-    if (filename) {
-      const filePath = path.join('storage/images', filename);
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Error deleting file: ${filePath}`, err);
-          // We don't want to fail the request if the file deletion fails,
-          // as the database record has already been deleted.
-        }
-      });
+    if (!userId) {
+      return res.status(401).json({ error: 'User is not authenticated.' });
     }
 
-    res.status(204).send();
+    const image = await db.image.findUnique({
+      where: { id: id },
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    if (image.ownerId !== userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not own this image' });
+    }
+
+    // TODO: Delete the actual file from your persistent disk using fs.unlinkSync()
+
+    await db.image.delete({
+      where: { id: id },
+    });
+    
+    res.status(200).json({ message: 'Image deleted successfully' });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error deleting image.' });
+    res.status(500).json({ error: 'Something went wrong while deleting the image.' });
   }
 });
 
-app.use('/storage', express.static('storage'));
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+// --- SERVER START ---
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

@@ -1,11 +1,10 @@
 #!/bin/sh
-# Exit immediately if a command exits with a non-zero status.
-set -e
+set -e # Exit immediately if a command fails
 
-# Run database migrations
-echo "Running database migrations..."
-npx prisma migrate deploy
+echo "Syncing database schema..."
+# This command just makes the DB match the schema. Simple.
+npx prisma db push
 
-# Execute the main container command (which will be 'npm start')
+# Start the application
 echo "Starting the server..."
-exec "$@"
+node dist/index.js
