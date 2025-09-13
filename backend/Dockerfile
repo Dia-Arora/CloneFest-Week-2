@@ -1,5 +1,6 @@
 # Stage 1: Builder
-FROM node:18-alpine AS builder
+# We are now using "slim" (Debian) instead of "alpine"
+FROM node:18-slim AS builder
 WORKDIR /app
 
 # Install ALL dependencies
@@ -17,12 +18,13 @@ RUN npm run build
 RUN chmod +x ./entrypoint.sh
 
 # Stage 2: Production
-FROM node:18-alpine
+# We are also using "slim" here for the final image
+FROM node:18-slim
 WORKDIR /app
 
 # --- THIS IS THE FIX ---
-# Install the OpenSSL 1.1 compatibility package, which Prisma 5 needs
-RUN apk add --no-cache openssl1.1-compat
+# This is the Debian/Ubuntu command to install openssl
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 # --- END OF FIX ---
 
 # Copy the package.json file for the "npm start" command
