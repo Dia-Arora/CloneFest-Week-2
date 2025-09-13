@@ -8,8 +8,15 @@ datasource db {
 
 generator client {
   provider      = "prisma-client-js"
-  // The corrected line with the required engine for Render
+  // The corrected line with all required engines
   binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x"]
+}
+
+// You likely have a User model for authentication
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
 }
 
 model Album {
@@ -22,6 +29,7 @@ model Image {
   id        Int      @id @default(autoincrement())
   url       String
   caption   String?
+  tags      String?  // <-- FIX: Added the 'tags' field
   createdAt DateTime @default(now())
   album     Album    @relation(fields: [albumId], references: [id])
   albumId   Int
